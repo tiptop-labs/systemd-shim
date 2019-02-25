@@ -1,0 +1,280 @@
+#!/usr/bin/env python3.5
+
+import argparse, concurrent.futures, grpc, ipaddress, json, logging, os, \
+  os.path, re, semver, subprocess, systemd.journal, time
+import api_pb2, api_pb2_grpc
+
+RUNTIME_NAME = 'systemd'
+RUNTIME_VERSION = '0.1'
+RUNTIME_API_VERSION = '0.1'
+
+log = logging.getLogger('systemd-shim')
+log.addHandler(systemd.journal.JournaldLogHandler())
+log.setLevel(logging.DEBUG)
+
+cni = None
+
+def kubelet_version():
+  try:
+    s = subprocess.run(['/usr/bin/kubelet', '--version'],
+      stdout=subprocess.PIPE, check=True).stdout.decode('utf-8')
+    return re.search('^Kubernetes v(\d+\.\d+\.\d+)$', s).group(1)
+  except FileNotFoundError:
+     return None
+
+def machinectl_version():
+  try:
+    s = subprocess.run(['/bin/machinectl', '--version'],
+      stdout=subprocess.PIPE, check=True).stdout.decode('utf-8')
+    return re.search('^systemd (\d+)\n', s).group(1)
+  except FileNotFoundError:
+    return None
+
+class Cni():
+  def __init__(self, cni, cni_path):
+    p = os.path.join(cni_path, cni)
+    if os.path.isfile(p) and os.access(p, os.X_OK):
+      self.plugin = p 
+    else:
+      self.plugin = None
+    self.ip_network = None
+
+  def _version(self):
+    e = {'CNI_COMMAND':'VERSION'}
+    s = subprocess.run([cni.plugin], env=e, stdout=subprocess.PIPE,
+      check=True).stdout.decode('utf-8')
+    return json.loads(s)
+
+  def version(self):
+    return self._version()['cniVersion']
+
+  def supportsVersion(self, version):
+    return version in self._version()['supportedVersions']
+
+class ImageServiceServicer(api_pb2_grpc.ImageServiceServicer):
+  def ListImages(self, request, context):
+    log.debug('ListImages request={}'.format(request))
+    log.warning('ListImages not yet implemented')
+    s = subprocess.run(['/bin/machinectl', 'list-images'], 
+      stdout=subprocess.PIPE, check=True).stdout.decode('utf-8')
+    assert s == 'No images.\n'
+    response = api_pb2.ListImagesResponse()
+    log.debug('ListImages response={}'.format(response))
+    return response
+
+  def ImageStatus(self, request, context):
+    log.debug('ImageStatus request={}'.format(request))
+    log.warning('ImageStatus not yet implemented')
+    raise NotImplementedError('Method not implemented!')
+
+  def PullImage(self, request, context):
+    log.debug('PullImage request={}'.format(request))
+    log.warning('PullImage not yet implemented')
+    raise NotImplementedError('Method not implemented!')
+
+  def ImageFsInfo(self, request, context):
+    log.debug('ImageFsInfo request={}'.format(request))
+    log.warning('ImageFsInfo not yet implemented')
+    raise NotImplementedError('Method not implemented!')
+
+class RuntimeServiceServicer(api_pb2_grpc.RuntimeServiceServicer):
+  def Version(self, request, context):
+    log.debug('Version request={}'.format(request))
+    response = api_pb2.VersionResponse(version=request.version,
+        runtime_name=RUNTIME_NAME, runtime_version=RUNTIME_VERSION,
+        runtime_api_version=RUNTIME_API_VERSION)
+    log.debug('Version response={}'.format(response))
+    return response
+
+  def RunPodSandbox(self, request, context):
+    log.debug('RunPodSandbox request={}'.format(request))
+    log.warning('RunPodSandbox not yet implemented')
+    raise NotImplementedError('Method not implemented!')
+
+  def StopPodSandbox(self, request, context):
+    log.debug('StopPodSandbox request={}'.format(request))
+    log.warning('StopPodSandbox not yet implemented')
+    raise NotImplementedError('Method not implemented!')
+
+  def RemovePodSandbox(self, request, context):
+    log.debug('RemovePodSandbox request={}'.format(request))
+    log.warning('RemovePodSandbox not yet implemented')
+    raise NotImplementedError('Method not implemented!')
+
+  def PodSandboxStatus(self, request, context):
+    log.debug('PodSandboxStatus request={}'.format(request))
+    log.warning('PodSandboxStatus not yet implemented')
+    raise NotImplementedError('Method not implemented!')
+
+  def ListPodSandbox(self, request, context):
+    log.debug('ListPodSandbox request={}'.format(request))
+    log.warning('ListPodSandbox not yet implemented')
+    s = subprocess.run(['/bin/machinectl', 'list'], stdout=subprocess.PIPE,
+      check=True).stdout.decode('utf-8')
+    assert s == 'No machines.\n'
+    response = api_pb2.ListPodSandboxResponse()
+    log.debug('ListPodSandbox response={}'.format(response))
+    return response
+
+  def CreateContainer(self, request, context):
+    log.debug('CreateContainer request={}'.format(request))
+    log.warning('CreateContainer not yet implemented')
+    raise NotImplementedError('Method not implemented!')
+
+  def StartContainer(self, request, context):
+    log.debug('StartContainer request={}'.format(request))
+    log.warning('StartContainer not yet implemented')
+    raise NotImplementedError('Method not implemented!')
+
+  def StopContainer(self, request, context):
+    log.debug('StopContainer request={}'.format(request))
+    log.warning('StopContainer not yet implemented')
+    raise NotImplementedError('Method not implemented!')
+
+  def RemoveContainer(self, request, context):
+    log.debug('RemoveContainer request={}'.format(request))
+    log.warning('RemoveContainer not yet implemented')
+    raise NotImplementedError('Method not implemented!')
+
+  def ListContainers(self, request, context):
+    log.debug('ListContainers request={}'.format(request))
+    log.warning('ListContainer not yet implemented')
+    s = subprocess.run(['/bin/machinectl', 'list'], stdout=subprocess.PIPE,
+      check=True).stdout.decode('utf-8')
+    assert s == 'No machines.\n'
+    response = api_pb2.ListContainersResponse()
+    log.debug('ListContainers response={}'.format(response))
+    return response
+
+  def ContainerStatus(self, request, context):
+    log.debug('ContainerStatus request={}'.format(request))
+    log.warning('ContainerStatus not yet implemented')
+    raise NotImplementedError('Method not implemented!')
+
+  def UpdateContainerResources(self, request, context):
+    log.debug('UpdateContainerResources request={}'.format(request))
+    log.warning('UpdateContainerResources not yet implemented')
+    raise NotImplementedError('Method not implemented!')
+
+  def ReopenContainerLog(self, request, context):
+    log.debug('ReopenContainerLog request={}'.format(request))
+    log.warning('ReopenContainerLog not yet implemented')
+    raise NotImplementedError('Method not implemented!')
+
+  def ExecSync(self, request, context):
+    log.debug('ExecSync request={}'.format(request))
+    log.warning('ExecSync not yet implemented')
+    raise NotImplementedError('Method not implemented!')
+
+  def Exec(self, request, context):
+    log.debug('Exec request={}'.format(request))
+    log.warning('Exec not yet implemented')
+    raise NotImplementedError('Method not implemented!')
+
+  def Attach(self, request, context):
+    log.debug('Attach request={}'.format(request))
+    log.warning('Attach not yet implemented')
+    raise NotImplementedError('Method not implemented!')
+
+  def PortForward(self, request, context):
+    log.debug('PortForward request={}'.format(request))
+    log.warning('PortForward not yet implemented')
+    raise NotImplementedError('Method not implemented!')
+
+  def ContainerStats(self, request, context):
+    log.debug('ContainerStats request={}'.format(request))
+    log.warning('ContainerStats not yet implemented')
+    raise NotImplementedError('Method not implemented!')
+
+  def ListContainerStats(self, request, context):
+    log.debug('ListContainerStats request={}'.format(request))
+    log.warning('ListContainerStats not yet implemented')
+    raise NotImplementedError('Method not implemented!')
+
+  def UpdateRuntimeConfig(self, request, context):
+    log.debug('UpdateRuntimeConfig request={}'.format(request))
+    pod_cidr = request.runtime_config.network_config.pod_cidr
+    if pod_cidr != '':
+      cni.ip_network = ipaddress.ip_network(pod_cidr) 
+    else:
+      cni.ip_network = None
+    response = api_pb2.UpdateRuntimeConfigResponse()
+    log.debug('UpdateRuntimeConfig response={}'.format(response))
+    return response
+
+  def Status(self, request, context):
+    def runtime_ready():
+      k_v = kubelet_version()
+      m_v = machinectl_version()
+      if k_v == None:
+        reason = 'Kubelet'
+        message = 'kubelet not installed'
+        return api_pb2.RuntimeCondition(type='RuntimeReady', status=False,
+          reason=reason, message=message)
+      elif m_v == None:
+        reason = 'Machinectl'
+        message = 'machinectl not installed'
+        return api_pb2.RuntimeCondition(type='RuntimeReady', status=False,
+          reason=reason, message=message)
+      elif not semver.match(k_v, '>=1.13.0') and semver.match(k_v, '<1.14.0'):
+        reason = 'CriVersion'
+        message = 'kubectl {} not validated'.format(k_v)
+        return api_pb2.RuntimeCondition(type='RuntimeReady', status=True, 
+          reason=reason, message=message)
+      else:
+        return api_pb2.RuntimeCondition(type='RuntimeReady', status=True,
+          reason='', message='')
+
+    def cri_version():
+      v = kubelet_version()
+
+    def network_ready():
+      if not cni.plugin:
+        reason = 'CniPlugin'
+        message = 'CNI plugin missing or not executable'
+        return api_pb2.RuntimeCondition(type='NetworkReady', status=False,
+          reason=reason, message=message)
+      elif not cni.supportsVersion('0.3.1'):
+        reason = 'CniVersion'
+        message = 'CNI plugin {} not validated'.format(cni.version())
+        return api_pb2.RuntimeCondition(type='NetworkReady', status=True,
+          reason=reason, message=message)
+      else:
+        return api_pb2.RuntimeCondition(type='NetworkReady', status=True,
+          reason='', message='')
+
+    log.debug('Status request={}'.format(request))
+    conditions = [ runtime_ready(), network_ready() ]
+    status = api_pb2.RuntimeStatus(conditions=conditions)
+    info = {}
+    response = api_pb2.StatusResponse(status=status, info=info)
+    log.debug('Status response={}'.format(response))
+    return response
+
+def server(socket):
+  server = grpc.server(concurrent.futures.ThreadPoolExecutor(max_workers=10))
+  api_pb2_grpc.add_ImageServiceServicer_to_server(ImageServiceServicer(),
+    server)
+  api_pb2_grpc.add_RuntimeServiceServicer_to_server(RuntimeServiceServicer(),
+    server)
+  assert socket.startswith('unix://'), socket
+  server.add_insecure_port(socket)
+  log.info('listen {}'.format(socket))
+  server.start()
+  try:
+    while True:
+      time.sleep(1)
+  except KeyboardInterrupt:
+    server.stop(0)
+
+def main():
+  parser = argparse.ArgumentParser()
+  parser.add_argument('--cni', default='flannel')
+  parser.add_argument('--cni-path', default='/opt/cni/bin')
+  parser.add_argument('--socket', default='unix://var/run/systemd-shim.sock')
+  args = parser.parse_args()
+  global cni
+  cni = Cni(args.cni, args.cni_path)
+  server(args.socket)
+
+main()
