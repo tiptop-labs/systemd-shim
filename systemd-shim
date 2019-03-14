@@ -88,6 +88,8 @@ class RuntimeServiceServicer(api_pb2_grpc.RuntimeServiceServicer):
 
   def RunPodSandbox(self, request, context):
     log.debug('RunPodSandbox request={}'.format(request))
+    if request.runtime_handler != '':
+      raise NotImplementedError('unknown runtime handler: {}'.format(request.runtime_handler))
     log.warning('RunPodSandbox not yet implemented')
     raise NotImplementedError('Method not implemented!')
 
