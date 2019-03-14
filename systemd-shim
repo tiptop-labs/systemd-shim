@@ -17,7 +17,7 @@ cni = None
 def kubelet_version():
   try:
     s = subprocess.run(['/usr/bin/kubelet', '--version'],
-      stdout=subprocess.PIPE, check=True).stdout.decode('utf-8')
+      stdout=subprocess.PIPE, check=True).stdout.decode()
     return re.search('^Kubernetes v(\d+\.\d+\.\d+)$', s).group(1)
   except FileNotFoundError:
      return None
@@ -25,12 +25,12 @@ def kubelet_version():
 def machinectl_version():
   try:
     s = subprocess.run(['/bin/machinectl', '--version'],
-      stdout=subprocess.PIPE, check=True).stdout.decode('utf-8')
+      stdout=subprocess.PIPE, check=True).stdout.decode()
     return re.search('^systemd (\d+)\n', s).group(1)
   except FileNotFoundError:
     return None
 
-class Cni():
+class Cni:
   def __init__(self, cni, cni_path):
     p = os.path.join(cni_path, cni)
     if os.path.isfile(p) and os.access(p, os.X_OK):
@@ -42,7 +42,7 @@ class Cni():
   def _version(self):
     e = {'CNI_COMMAND':'VERSION'}
     s = subprocess.run([cni.plugin], env=e, stdout=subprocess.PIPE,
-      check=True).stdout.decode('utf-8')
+      check=True).stdout.decode()
     return json.loads(s)
 
   def version(self):
@@ -56,7 +56,7 @@ class ImageServiceServicer(api_pb2_grpc.ImageServiceServicer):
     log.debug('ListImages request={}'.format(request))
     log.warning('ListImages not yet implemented')
     s = subprocess.run(['/bin/machinectl', 'list-images'], 
-      stdout=subprocess.PIPE, check=True).stdout.decode('utf-8')
+      stdout=subprocess.PIPE, check=True).stdout.decode()
     assert s == 'No images.\n'
     response = api_pb2.ListImagesResponse()
     log.debug('ListImages response={}'.format(response))
@@ -110,7 +110,7 @@ class RuntimeServiceServicer(api_pb2_grpc.RuntimeServiceServicer):
     log.debug('ListPodSandbox request={}'.format(request))
     log.warning('ListPodSandbox not yet implemented')
     s = subprocess.run(['/bin/machinectl', 'list'], stdout=subprocess.PIPE,
-      check=True).stdout.decode('utf-8')
+      check=True).stdout.decode()
     assert s == 'No machines.\n'
     response = api_pb2.ListPodSandboxResponse()
     log.debug('ListPodSandbox response={}'.format(response))
@@ -140,7 +140,7 @@ class RuntimeServiceServicer(api_pb2_grpc.RuntimeServiceServicer):
     log.debug('ListContainers request={}'.format(request))
     log.warning('ListContainer not yet implemented')
     s = subprocess.run(['/bin/machinectl', 'list'], stdout=subprocess.PIPE,
-      check=True).stdout.decode('utf-8')
+      check=True).stdout.decode()
     assert s == 'No machines.\n'
     response = api_pb2.ListContainersResponse()
     log.debug('ListContainers response={}'.format(response))
